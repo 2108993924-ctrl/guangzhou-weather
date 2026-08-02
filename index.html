@@ -204,6 +204,10 @@
 
         /* 画折线图：最高温和最低温两条线 */
         function drawChart(weather) {
+            // 0. 在函数内部自己获取画布元素（每个函数都自己获取需要的元素，
+            //    不依赖其他函数的局部变量——函数只能使用自己内部定义的或全局的变量）
+            const canvas = document.getElementById('weatherChart');
+
             // 1. 从数据里分别取出日期、最高温、最低温三个列表
             //    .map 的作用：对数组里的每一项做一个"转换"，
             //    这里就是把每一项 (d) 变成 d.date / d.temp_max / d.temp_min
@@ -213,7 +217,7 @@
 
             // 2. 调用 Chart.js 画图（核心代码）
             //    第一个参数：画布元素；第二个参数：图表的配置
-            new Chart(canvasEl, {
+            new Chart(canvas, {
                 // 图表类型：line 表示折线图
                 type: 'line',
                 data: {
