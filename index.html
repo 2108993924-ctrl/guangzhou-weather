@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<!-- 声明这是 HTML5 文档，告诉浏览器按标准方式解析页面 -->
+<html lang="zh-CN">
+<head>
+    <!-- 指定字符编码为 UTF-8，保证中文正常显示 -->
+    <meta charset="UTF-8">
+    <!-- 响应式布局的关键：让页面宽度跟随设备屏幕宽度，缩放比例 1:1 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 页面标题（显示在浏览器标签页上的文字） -->
+    <title>广州未来 7 天天气</title>
+
+    <!-- 引入 Chart.js 图表库（CDN 版本，即直接从网上加载，无需下载安装）。
+         Chart.js 是一个开源图表库，我们只用几行代码就能画出漂亮的折线图 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <style>
+        /* ========== 页面整体样式（CSS）==========
+           这里控制网页的"外观"，比如颜色、大小、位置 */
+
+        /* 让页面占满整个屏幕高度，并设置浅色渐变背景 */
+        html, body {
+            margin: 0;
+            padding: 0;
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+            min-height: 100vh;
+        }
+
+        /* 最外层容器：垂直居中排列内容 */
+        .container {
+            max-width: 900px;          /* 内容最大宽度，太宽了不好看 */
+            margin: 0 auto;            /* 水平居中 */
+            padding: 30px 20px;        /* 四周留白 */
+        }
+
+        /* 标题区的文字样式 */
+        .header h1 {
+            text-align: center;
+            color: #1e3a5f;
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            text-align: center;
+            color: #5b7a9d;
+            font-size: 14px;
+            margin-top: 0;
+        }
+
+        /* 图表卡片：白色背景 + 圆角 + 轻微阴影，让图表像一张"卡片" */
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 24px;
+            margin-top: 24px;
+        }
+
+        /* 图表容器：必须设置相对高度，canvas 才能撑开显示 */
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+        }
+
+        /* 加载中/出错的提示文字 */
+        #status {
+            text-align: center;
+            color: #7a8fa6;
+            padding: 40px 0;
+            font-size: 15px;
+            line-height: 2;
+        }
+
+        #status a {
+            color: #2563eb;
+        }
+
+        /* 三个统计小卡片的布局：用弹性盒子横向排列 */
+        .stats {
+            display: flex;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            flex: 1;                   /* 三个卡片平分宽度 */
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .stat-item .label {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .stat-item .value {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1e3a5f;
+            margin-top: 4px;
+        }
+
+        /* 手机等小屏幕上，统计卡片改成上下堆叠，不挤在一起 */
+        @media (max-width: 600px) {
+            .stats {
+                flex-direction: column;
+            }
+            .chart-wrapper {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ========== 页面内容部分 ========== -->
+    <div class="container">
+
+        <!-- 头部：标题 + 更新时间 -->
+        <div class="header">
+            <h1>🌤 广州未来 7 天天气</h1>
+            <p id="update-info">数据加载中...</p>
+        </div>
+
+        <!-- 图表卡片：里面放折线图 -->
+        <div class="card">
+            <div class="chart-wrapper">
+                <!-- 图表画布：Chart.js 会在这个 canvas 上绘制折线图 -->
+                <canvas id="weatherChart"></canvas>
+            </div>
+
+            <!-- 数据加载失败时的提示（默认隐藏，出错时显示） -->
+            <div id="status" style="display: none;"></div>
+        </div>
+
+        <!-- 三个统计小卡片：最高温峰值、最低温谷值、总降雨量 -->
+        <div class="stats">
+            <div class="stat-item">
+                <div class="label">7 天最高温峰值</div>
+                <div class="value" id="stat-max">-</div>
+            </div>
+            <div class="stat-item">
+                <div class="label">7 天最低温谷值</div>
+                <div class="value" id="stat-min">-</div>
+            </div>
+            <div class="stat-item">
+                <div class="label">7 天总降雨量</div>
+                <div class="value" id="stat-rain">-</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ========== JavaScript：负责"读取数据 + 画图" ========== */
+
+        // 这是一个"异步函数"：从 guangzhou_weather.json 读取数据，
+        // 然后调用 drawChart 画出折线图。
+        // async/await 是 JavaScript 处理"等待网络请求"的标准写法，
+        // 简单理解：先等数据下载完，再继续往下执行。
+        async function loadAndDraw() {
+            const statusEl = document.getElementById('status');  // 提示区域
+            const canvasEl = document.getElementById('weatherChart'); // 画布
+
+            try {
+                // 1. 用 fetch 读取同目录下的 JSON 文件
+                //    （fetch 是浏览器内置的"下载文件"功能）
+                const response = await fetch('guangzhou_weather.json');
+
+                // 如果文件不存在或读取失败，response.ok 会是 false
+                if (!response.ok) {
+                    throw new Error('HTTP 状态码：' + response.status);
+                }
+
+                // 把下载到的内容解析成 JavaScript 对象（类似 Python 的字典）
+                const weather = await response.json();
+
+                // 2. 更新页面上的"更新时间"文字
+                document.getElementById('update-info').textContent =
+                    '数据更新时间：' + weather.updated_at + '（北京时间）';
+
+                // 3. 画折线图
+                drawChart(weather);
+
+                // 4. 计算并显示三个统计数据
+                updateStats(weather);
+
+            } catch (error) {
+                // 走到这里说明读取失败（最常见原因：直接双击打开的 HTML，
+                // 浏览器出于安全限制不允许网页读取本地文件）
+                canvasEl.style.display = 'none';  // 隐藏图表
+                statusEl.style.display = 'block'; // 显示提示文字
+                statusEl.innerHTML =
+                    '⚠ 无法读取天气数据文件，请检查：<br>' +
+                    '1. 确认 guangzhou_weather.json 和本页面在同一目录；<br>' +
+                    '2. 不要用「双击打开」方式，请在项目目录下运行：<br>' +
+                    '<code>python -m http.server 8000</code><br>' +
+                    '然后浏览器访问：<a href="http://localhost:8000" target="_blank">http://localhost:8000</a>' +
+                    '<br><br>详细错误：' + error.message;
+            }
+        }
+
+        /* 画折线图：最高温和最低温两条线 */
+        function drawChart(weather) {
+            // 1. 从数据里分别取出日期、最高温、最低温三个列表
+            //    .map 的作用：对数组里的每一项做一个"转换"，
+            //    这里就是把每一项 (d) 变成 d.date / d.temp_max / d.temp_min
+            const dates = weather.data.map(d => d.date);      // 日期列表
+            const tempsMax = weather.data.map(d => d.temp_max); // 最高温列表
+            const tempsMin = weather.data.map(d => d.temp_min); // 最低温列表
+
+            // 2. 调用 Chart.js 画图（核心代码）
+            //    第一个参数：画布元素；第二个参数：图表的配置
+            new Chart(canvasEl, {
+                // 图表类型：line 表示折线图
+                type: 'line',
+                data: {
+                    // x 轴数据：日期
+                    labels: dates,
+                    // 两条折线的数据
+                    datasets: [
+                        {
+                            label: '最高温 (°C)',   // 图例名称
+                            data: tempsMax,          // 数据
+                            borderColor: '#ef4444',  // 线条颜色（红色）
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)', // 线条下方填充的淡红色
+                            fill: true,              // 开启填充效果
+                            tension: 0.3,            // 线条圆滑程度（0=直线，1=最圆滑）
+                            pointRadius: 5,          // 数据点（小圆点）大小
+                        },
+                        {
+                            label: '最低温 (°C)',
+                            data: tempsMin,
+                            borderColor: '#3b82f6',  // 线条颜色（蓝色）
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 5,
+                        }
+                    ]
+                },
+                options: {
+                    // 响应式：页面窗口大小变化时，图表自动调整尺寸
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    // 交互提示：鼠标悬停在数据点上时显示具体数值
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        // 图例显示在图表上方
+                        legend: { position: 'top' },
+                        // 悬停时显示的数据提示框
+                        tooltip: {
+                            callbacks: {
+                                // 提示框里额外显示当天的降雨量
+                                afterLabel: function (context) {
+                                    const rain = weather.data[context.dataIndex].precipitation;
+                                    return '降雨量：' + rain + ' mm';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        // y 轴（温度）从 0 开始，这样对比更直观
+                        y: {
+                            beginAtZero: false,
+                            title: { display: true, text: '温度 (°C)' }
+                        },
+                        // x 轴（日期）
+                        x: {
+                            title: { display: true, text: '日期' }
+                        }
+                    }
+                }
+            });
+        }
+
+        /* 计算并显示三个统计数字 */
+        function updateStats(weather) {
+            const data = weather.data;
+            // Math.max(...列表) 可以取出一组数字里的最大值（...是展开运算符）
+            const maxTemp = Math.max(...data.map(d => d.temp_max));
+            const minTemp = Math.min(...data.map(d => d.temp_min));
+            // reduce 把一组数字累加起来，算出总降雨量
+            const totalRain = data.reduce((sum, d) => sum + d.precipitation, 0);
+
+            // 把结果填进页面对应的位置（toFixed(1) 表示保留 1 位小数）
+            document.getElementById('stat-max').textContent = maxTemp.toFixed(1) + ' °C';
+            document.getElementById('stat-min').textContent = minTemp.toFixed(1) + ' °C';
+            document.getElementById('stat-rain').textContent = totalRain.toFixed(1) + ' mm';
+        }
+
+        // 页面加载完成后，开始执行"读取数据 + 画图"
+        // （DOMContentLoaded 表示网页的所有元素都准备好了）
+        document.addEventListener('DOMContentLoaded', loadAndDraw);
+    </script>
+</body>
+</html>

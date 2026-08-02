@@ -1,0 +1,88 @@
+# daily_update.yml —— 每天自动更新天气数据
+# =========================================================
+# 这个文件是"GitHub Actions 工作流"的配置文件。
+# GitHub Actions 是 GitHub 自带的自动化服务：只要把项目推送到 GitHub，
+# GitHub 就会按照这里写的步骤，在服务器上自动执行任务。
+#
+# 我们的任务：每天自动运行 fetch_weather.py，把最新的天气数据
+# 提交回仓库，这样 GitHub Pages 上的网页就能一直显示最新天气。
+#
+# 运行时间：每天 UTC 0:00（即北京时间早上 8:00，中国在东八区，比 UTC 快 8 小时）
+
+# name：工作流的名字，会显示在 GitHub 仓库的 Actions 页面上
+name: Daily Weather Update
+
+# on：什么时候触发这个工作流
+on:
+  # 1. schedule：定时触发。cron 表达式格式是"分 时 日 月 星期"，
+  #    "0 0 * * *" 表示：每天的第 0 分钟、第 0 小时（即每天零点）
+  #    注意这里的时间是 UTC（世界标准时间），所以 UTC 0 点 = 北京时间早 8 点
+  schedule:
+    - cron: '0 0 * * *'
+
+  # 2. workflow_dispatch：允许在 GitHub 网页上手动点击按钮触发一次
+  workflow_dispatch:
+
+# permissions：给这个工作流分配的权限。
+# 因为后面需要"把更新后的文件推回仓库"，所以需要写入代码仓库内容的权限
+permissions:
+  contents: write
+
+# jobs：要执行的任务（可以理解为一台临时服务器上要做的几件事）
+jobs:
+  # 任务的名字（自己起的），叫 update-weather
+  update-weather:
+    # 运行在 Ubuntu 最新版系统上（GitHub 提供的免费虚拟服务器）
+    runs-on: ubuntu-latest
+
+    # steps：一个任务里按顺序执行的多个步骤
+    steps:
+      # ---- 第 1 步：下载（checkout）你的仓库代码到虚拟服务器上 ----
+      - name: Checkout repository
+        # actions/checkout 是 GitHub 官方提供的一个现成"动作"，
+        # 作用是把你仓库里的文件复制到这台服务器上，后面才能运行你的脚本
+        uses: actions/checkout@v4
+
+      # ---- 第 2 步：安装 Python ----
+      - name: Setup Python
+        # actions/setup-python 是官方动作，安装指定版本的 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # ---- 第 3 步：安装 Python 库 requests ----
+      - name: Install dependencies
+        # run 表示执行一条终端命令
+        # pip install requests 安装发送网络请求所需的库
+        run: |
+          pip install requests
+
+      # ---- 第 4 步：运行天气数据获取脚本 ----
+      - name: Run weather fetch script
+        # 执行你写的 fetch_weather.py，生成最新的 guangzhou_weather.json
+        run: |
+          python fetch_weather.py
+
+      # ---- 第 5 步：把更新后的数据文件提交并推送回仓库 ----
+      - name: Commit and push changes
+        # 下面的命令组合起来做三件事：
+        # 1) 配置 git 的用户名和邮箱（GitHub 机器人身份）
+        # 2) 把更新过的文件加入暂存区并提交
+        # 3) 推送到仓库的 main 分支
+        # 注意：推送到 main 分支会使用内置的 GITHUB_TOKEN 自动授权，
+        #       不需要我们手动设置任何密码或密钥
+        #
+        # 小技巧：如果某天天气预报数据没有变化（和昨天一模一样），
+        # git commit 会提示 "nothing to commit" 并以失败告终。
+        # 所以这里先用 git diff --cached --quiet 检查是否有变化：
+        # 没有变化就正常结束（exit 0），不提交；有变化才提交推送。
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add guangzhou_weather.json
+          if git diff --cached --quiet; then
+            echo "天气数据没有变化，跳过本次提交"
+            exit 0
+          fi
+          git commit -m "Update weather data $(date +'%Y-%m-%d %H:%M')"
+          git push

@@ -1,0 +1,11 @@
+# .gitignore —— 告诉 Git 哪些文件不要提交到 GitHub
+
+# Qoder 的工作目录（本地工具产生的，不需要上传）
+# 注意：不带斜杠的写法同时匹配"文件和目录"两种形式
+.aicoding-chat-workspace
+
+# Python 运行产生的缓存目录
+__pycache__/
+
+# Python 生成的缓存文件
+*.pyc
