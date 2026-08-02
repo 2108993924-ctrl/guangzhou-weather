@@ -16,19 +16,24 @@
 - [x] guangzhou_weather.json：已生成，结构符合要求（city / updated_at / data）
 - [x] index.html：Chart.js 折线图页面，已创建，本地服务器验证通过（HTTP 200）
 - [x] .github/workflows/daily_update.yml：每日自动更新工作流，已创建（每天 UTC 0 点 = 北京时间早 8 点，支持手动触发）
-- [ ] 部署到 GitHub Pages（待办）
-- [ ] 本地代码提交到 GitHub 仓库（待办）
+- [x] 本地 git 仓库初始化并提交（分支 main）
+- [x] 推送到 GitHub 远程仓库（https://github.com/2108993924-ctrl/guangzhou-weather）
+- [x] GitHub Pages 已启用并部署成功
+- [x] 网站访问验证通过：https://2108993924-ctrl.github.io/guangzhou-weather/（HTTP 200）
+- [x] Actions 自动更新工作流手动触发测试通过（success，数据已自动更新并重新部署）
 
 ## 三、待办问题 / 下一步任务
 
-1. 将项目文件提交到 GitHub 仓库（git init → add → commit → push）
-2. 在 GitHub 仓库 Settings → Pages 启用 GitHub Pages（main 分支根目录）
-3. 验证 Actions 自动更新和网页访问
+1. 观察每日定时更新是否按预期运行（预计每天北京时间 8 点）
+2. （可选）后续可扩展：降雨量柱状图、更长时间预报、城市切换等
 
 ## 四、问题记录
 
-- （暂无）
+- 已解决：首次查询 GitHub Pages API 返回 404，原因系 Pages 配置刚保存未生效，稍后部署完成即恢复正常
+- 已解决：PowerShell 中 curl 参数与 Invoke-WebRequest 冲突，改用 curl.exe
+- 已解决：.aicoding-chat-workspace 为文件而非目录，.gitignore 改用不带斜杠写法成功忽略
 
 ## 五、交接记录
 
 - 2026-08-02：Quest 与 chat 建立交接机制；chat 完成项目三件套（脚本/网页/工作流）并验证通过。
+- 2026-08-02：项目部署完成——git 提交推送 → GitHub Pages 上线（HTTP 200）→ Actions 手动触发测试成功，自动化闭环全部验证通过。
