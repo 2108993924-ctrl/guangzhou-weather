@@ -1,48 +1,48 @@
 {
   "city": "Guangzhou",
-  "updated_at": "2026-11-10 13:46:45",
+  "updated_at": "2026-11-11 12:28:41",
   "data": [
     {
-      "date": "2026-11-10",
-      "temp_max": 19.9,
-      "temp_min": 12.2,
-      "precipitation": 0.0
-    },
-    {
       "date": "2026-11-11",
-      "temp_max": 22.9,
-      "temp_min": 11.1,
+      "temp_max": 22.6,
+      "temp_min": 11.7,
       "precipitation": 0.0
     },
     {
       "date": "2026-11-12",
-      "temp_max": 27.1,
-      "temp_min": 15.1,
+      "temp_max": 26.9,
+      "temp_min": 14.8,
       "precipitation": 0.0
     },
     {
       "date": "2026-11-13",
-      "temp_max": 26.5,
-      "temp_min": 18.7,
-      "precipitation": 6.5
+      "temp_max": 25.1,
+      "temp_min": 18.3,
+      "precipitation": 28.9
     },
     {
       "date": "2026-11-14",
-      "temp_max": 27.1,
-      "temp_min": 19.1,
-      "precipitation": 49.5
+      "temp_max": 26.6,
+      "temp_min": 17.9,
+      "precipitation": 16.6
     },
     {
       "date": "2026-11-15",
-      "temp_max": 28.1,
-      "temp_min": 19.2,
+      "temp_max": 28.4,
+      "temp_min": 18.0,
       "precipitation": 0.0
     },
     {
       "date": "2026-11-16",
-      "temp_max": 27.0,
-      "temp_min": 22.3,
-      "precipitation": 3.6
+      "temp_max": 25.6,
+      "temp_min": 21.4,
+      "precipitation": 9.9
+    },
+    {
+      "date": "2026-11-17",
+      "temp_max": 28.4,
+      "temp_min": 21.3,
+      "precipitation": 21.0
     }
   ]
 }
